@@ -1,0 +1,13 @@
+{
+  "name": "gc-pkce-test",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run --reporter=verbose",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.10.1",
+    "vitest": "^4.1.8"
+  }
+}

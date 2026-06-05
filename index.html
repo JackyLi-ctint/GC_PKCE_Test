@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Genesys Cloud PKCE API Tester</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 24px;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 24px;
+      color: #1a1a1a;
+    }
+
+    .section {
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .section:last-child {
+      border-bottom: none;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #1a1a1a;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 500;
+      font-size: 14px;
+      color: #333;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #0066cc;
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+
+    .badge-success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .badge-info {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+
+    .badge-danger {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .badge-warning {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .http-2xx { color: #28a745; font-weight: 600; }
+    .http-4xx { color: #ffc107; font-weight: 600; }
+    .http-5xx { color: #dc3545; font-weight: 600; }
+    .http-other { color: #6c757d; font-weight: 600; }
+
+    .button-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #0066cc;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #0052a3;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
+
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #c82333;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .redirect-uri-box {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      word-break: break-all;
+      margin-bottom: 12px;
+    }
+
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .response-panel {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+
+    pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 12px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .collapsible-header {
+      cursor: pointer;
+      padding: 8px;
+      background: #e9ecef;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .collapsible-header::before {
+      content: '▶';
+      display: inline-block;
+      transition: transform 0.2s;
+    }
+
+    .collapsible-header.open::before {
+      transform: rotate(90deg);
+    }
+
+    .collapsible-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.2s;
+      margin-left: 16px;
+    }
+
+    .collapsible-content.open {
+      max-height: 500px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .error {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+
+    .success {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+
+    .copy-btn {
+      padding: 4px 8px;
+      font-size: 12px;
+      background: #0066cc;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    .copy-btn:hover {
+      background: #0052a3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 Genesys Cloud PKCE API Tester</h1>
+
+    <!-- Login Section -->
+    <div id="loginSection" class="section">
+      <div class="section-title">1. OAuth Configuration</div>
+
+      <div class="form-group">
+        <label for="regionSelect">GC Region</label>
+        <select id="regionSelect">
+          <option value="" disabled selected>-- Select Region --</option>
+          <option value="us-east-1" data-login="login.mypurecloud.com" data-api="api.mypurecloud.com">US East – Virginia (us-east-1)</option>
+          <option value="us-east-2" data-login="login.use2.us-gov-pure.cloud" data-api="api.use2.us-gov-pure.cloud">US East 2 – Ohio GovCloud (us-east-2)</option>
+          <option value="us-west-2" data-login="login.usw2.pure.cloud" data-api="api.usw2.pure.cloud">US West – Oregon (us-west-2)</option>
+          <option value="ca-central-1" data-login="login.cac1.pure.cloud" data-api="api.cac1.pure.cloud">Canada – Central (ca-central-1)</option>
+          <option value="eu-west-1" data-login="login.mypurecloud.ie" data-api="api.mypurecloud.ie">Europe – Ireland (eu-west-1)</option>
+          <option value="eu-west-2" data-login="login.euw2.pure.cloud" data-api="api.euw2.pure.cloud">Europe – London (eu-west-2)</option>
+          <option value="eu-central-1" data-login="login.mypurecloud.de" data-api="api.mypurecloud.de">Europe – Frankfurt (eu-central-1)</option>
+          <option value="eu-central-2" data-login="login.euc2.pure.cloud" data-api="api.euc2.pure.cloud">Europe – Zurich (eu-central-2)</option>
+          <option value="ap-south-1" data-login="login.aps1.pure.cloud" data-api="api.aps1.pure.cloud">Asia Pacific – Mumbai (ap-south-1)</option>
+          <option value="ap-northeast-1" data-login="login.mypurecloud.jp" data-api="api.mypurecloud.jp">Asia Pacific – Tokyo (ap-northeast-1)</option>
+          <option value="ap-northeast-2" data-login="login.apne2.pure.cloud" data-api="api.apne2.pure.cloud">Asia Pacific – Seoul (ap-northeast-2)</option>
+          <option value="ap-northeast-3" data-login="login.apne3.pure.cloud" data-api="api.apne3.pure.cloud">Asia Pacific – Osaka (ap-northeast-3)</option>
+          <option value="ap-southeast-2" data-login="login.mypurecloud.com.au" data-api="api.mypurecloud.com.au">Asia Pacific – Sydney (ap-southeast-2)</option>
+          <option value="sa-east-1" data-login="login.sae1.pure.cloud" data-api="api.sae1.pure.cloud">South America – São Paulo (sa-east-1)</option>
+          <option value="me-central-1" data-login="login.mec1.pure.cloud" data-api="api.mec1.pure.cloud">Middle East – UAE (me-central-1)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="clientId">OAuth Client ID</label>
+        <input type="text" id="clientId" placeholder="Paste your OAuth Client ID here">
+      </div>
+
+      <div class="form-group">
+        <label for="redirectUri">Computed Redirect URI</label>
+        <div class="redirect-uri-box" id="redirectUri">
+          (Redirect URI will appear here after you select a region)
+        </div>
+        <button class="copy-btn" id="copyRedirectUri">Copy Redirect URI</button>
+        <p style="font-size: 12px; margin-top: 8px; color: #666;">
+          ⚠️ Register this URI in your Genesys Cloud OAuth client configuration before clicking Login.
+        </p>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-primary" id="loginBtn">🔗 Login with Genesys Cloud</button>
+      </div>
+    </div>
+
+    <!-- API Request Section -->
+    <div id="apiSection" class="section hidden">
+      <div class="section-title">2. API Request</div>
+
+      <div class="form-group">
+        <label for="apiMethod">HTTP Method</label>
+        <select id="apiMethod">
+          <option value="GET">GET</option>
+          <option value="POST">POST</option>
+          <option value="PUT">PUT</option>
+          <option value="PATCH">PATCH</option>
+          <option value="DELETE">DELETE</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="apiPath">API Path (e.g., /api/v2/users/me)</label>
+        <input type="text" id="apiPath" placeholder="/api/v2/users/me">
+      </div>
+
+      <div class="form-group hidden" id="bodyGroup">
+        <label for="requestBody">Request Body (JSON)</label>
+        <textarea id="requestBody" placeholder='{"name": "value"}'></textarea>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-primary" id="runApiBtn">▶️ Run API Call</button>
+        <button class="btn-secondary" id="logoutBtn">🚪 Logout</button>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="section hidden">
+      <div class="section-title">3. Results</div>
+
+      <div id="errorMessage" class="error hidden"></div>
+
+      <div id="statusLine" class="status-line hidden"></div>
+
+      <div id="responsePanel" class="response-panel hidden">
+        <div style="margin-bottom: 12px;">
+          <div class="section-title" style="margin-bottom: 8px;">HTTP Response</div>
+          <pre id="responseBody">Loading...</pre>
+        </div>
+
+        <div class="collapsible-header" id="tokenHeader">Access Token (raw)</div>
+        <div class="collapsible-content" id="tokenContent">
+          <pre id="tokenValue" style="word-break: break-all;"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import {
+      escapeHtml,
+      base64UrlEncode,
+      generateCodeVerifier,
+      generateCodeChallenge,
+      httpBadgeClass,
+      validateApiPath,
+      validateJsonBody,
+    } from './src/pkce-utils.js';
+
+    // ──────────────────────────────────────────────────────────────────
+    // DOM Elements
+    // ──────────────────────────────────────────────────────────────────
+    const regionSelect = document.getElementById('regionSelect');
+    const clientIdInput = document.getElementById('clientId');
+    const redirectUriBox = document.getElementById('redirectUri');
+    const copyRedirectUriBtn = document.getElementById('copyRedirectUri');
+    const loginBtn = document.getElementById('loginBtn');
+    const apiMethodSelect = document.getElementById('apiMethod');
+    const apiPathInput = document.getElementById('apiPath');
+    const requestBodyInput = document.getElementById('requestBody');
+    const bodyGroup = document.getElementById('bodyGroup');
+    const runApiBtn = document.getElementById('runApiBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const loginSection = document.getElementById('loginSection');
+    const apiSection = document.getElementById('apiSection');
+    const resultsSection = document.getElementById('resultsSection');
+    const statusLine = document.getElementById('statusLine');
+    const responsePanel = document.getElementById('responsePanel');
+    const responsePre = document.getElementById('responseBody');
+    const errorMessage = document.getElementById('errorMessage');
+    const tokenHeader = document.getElementById('tokenHeader');
+    const tokenContent = document.getElementById('tokenContent');
+    const tokenValue = document.getElementById('tokenValue');
+
+    // ──────────────────────────────────────────────────────────────────
+    // Session Storage Management
+    // ──────────────────────────────────────────────────────────────────
+    function saveConfig() {
+      const region = regionSelect.value;
+      const selectedOption = regionSelect.options[regionSelect.selectedIndex];
+      const config = {
+        region,
+        loginHost: selectedOption.dataset.login,
+        apiHost: selectedOption.dataset.api,
+        clientId: clientIdInput.value,
+      };
+      sessionStorage.setItem('gc_pkce_config', JSON.stringify(config));
+    }
+
+    function getConfig() {
+      const cfg = sessionStorage.getItem('gc_pkce_config');
+      return cfg ? JSON.parse(cfg) : null;
+    }
+
+    function getToken() {
+      return sessionStorage.getItem('gc_pkce_token');
+    }
+
+    function setToken(token) {
+      sessionStorage.setItem('gc_pkce_token', token);
+    }
+
+    function getVerifier() {
+      return sessionStorage.getItem('gc_pkce_verifier');
+    }
+
+    function setVerifier(verifier) {
+      sessionStorage.setItem('gc_pkce_verifier', verifier);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // UI Updates
+    // ──────────────────────────────────────────────────────────────────
+    function updateRedirectUri() {
+      redirectUriBox.textContent = window.location.origin + window.location.pathname;
+    }
+
+    function showLoginSection() {
+      loginSection.classList.remove('hidden');
+      apiSection.classList.add('hidden');
+      resultsSection.classList.add('hidden');
+    }
+
+    function showApiSection(config) {
+      loginSection.classList.add('hidden');
+      apiSection.classList.remove('hidden');
+      resultsSection.classList.add('hidden');
+      updateApiMethodUI();
+    }
+
+    function updateApiMethodUI() {
+      const method = apiMethodSelect.value;
+      if (['POST', 'PUT', 'PATCH'].includes(method)) {
+        bodyGroup.classList.remove('hidden');
+      } else {
+        bodyGroup.classList.add('hidden');
+      }
+    }
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.remove('hidden');
+    }
+
+    function hideError() {
+      errorMessage.classList.add('hidden');
+      errorMessage.textContent = '';
+    }
+
+    function showResults(method, path, status, response) {
+      resultsSection.classList.remove('hidden');
+      hideError();
+
+      // Status line
+      statusLine.innerHTML = '';
+      const config = getConfig();
+
+      const tokenBadge = document.createElement('span');
+      tokenBadge.className = 'badge badge-success';
+      tokenBadge.textContent = '✓ Token acquired';
+      statusLine.appendChild(tokenBadge);
+
+      const regionBadge = document.createElement('span');
+      regionBadge.className = 'badge badge-info';
+      regionBadge.textContent = config.region;
+      statusLine.appendChild(regionBadge);
+
+      const statusBadge = document.createElement('span');
+      statusBadge.className = `badge http-${httpBadgeClass(status).split('-')[1]}`;
+      statusBadge.textContent = `${method} ${status}`;
+      statusLine.appendChild(statusBadge);
+
+      statusLine.classList.remove('hidden');
+
+      // Response
+      responsePre.textContent = JSON.stringify(response, null, 2);
+      responsePanel.classList.remove('hidden');
+
+      // Token
+      tokenValue.textContent = getToken();
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Event Listeners
+    // ──────────────────────────────────────────────────────────────────
+    regionSelect.addEventListener('change', updateRedirectUri);
+
+    copyRedirectUriBtn.addEventListener('click', async () => {
+      const text = redirectUriBox.textContent;
+      await navigator.clipboard.writeText(text);
+      const originalText = copyRedirectUriBtn.textContent;
+      copyRedirectUriBtn.textContent = '✓ Copied!';
+      setTimeout(() => {
+        copyRedirectUriBtn.textContent = originalText;
+      }, 2000);
+    });
+
+    apiMethodSelect.addEventListener('change', updateApiMethodUI);
+
+    tokenHeader.addEventListener('click', () => {
+      tokenHeader.classList.toggle('open');
+      tokenContent.classList.toggle('open');
+    });
+
+    loginBtn.addEventListener('click', async () => {
+      const region = regionSelect.value;
+      const clientId = clientIdInput.value.trim();
+
+      if (!region) {
+        showError('Please select a region');
+        return;
+      }
+
+      if (!clientId) {
+        showError('Please enter your OAuth Client ID');
+        return;
+      }
+
+      saveConfig();
+
+      try {
+        const verifier = generateCodeVerifier();
+        setVerifier(verifier);
+        const challenge = await generateCodeChallenge(verifier);
+
+        const selectedOption = regionSelect.options[regionSelect.selectedIndex];
+        const loginHost = selectedOption.dataset.login;
+
+        const params = new URLSearchParams({
+          client_id: clientId,
+          response_type: 'code',
+          redirect_uri: window.location.origin + window.location.pathname,
+          code_challenge: challenge,
+          code_challenge_method: 'S256',
+        });
+
+        window.location.href = `https://${loginHost}/oauth/authorize?${params.toString()}`;
+      } catch (err) {
+        showError('Error generating PKCE challenge: ' + err.message);
+      }
+    });
+
+    runApiBtn.addEventListener('click', async () => {
+      const config = getConfig();
+      const token = getToken();
+      const method = apiMethodSelect.value;
+      const path = apiPathInput.value.trim();
+      const bodyText = requestBodyInput.value.trim();
+
+      try {
+        validateApiPath(path);
+        if (bodyText) {
+          validateJsonBody(bodyText);
+        }
+
+        hideError();
+
+        const url = `https://${config.apiHost}${path}`;
+        const options = {
+          method,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        };
+
+        if (bodyText) {
+          options.body = bodyText;
+        }
+
+        const response = await fetch(url, options);
+        let data;
+        try {
+          data = await response.json();
+        } catch {
+          data = { _raw_text: await response.text() };
+        }
+
+        showResults(method, path, response.status, data);
+      } catch (err) {
+        showError(err.message);
+      }
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+      const config = getConfig();
+      const token = getToken();
+
+      try {
+        // Attempt to revoke token
+        await fetch(`https://${config.apiHost}/api/v2/tokens/me`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }).catch(() => {
+          // Ignore errors if revocation fails
+        });
+
+        // Clear session
+        sessionStorage.clear();
+        showLoginSection();
+        updateRedirectUri();
+        hideError();
+      } catch (err) {
+        showError('Error during logout: ' + err.message);
+      }
+    });
+
+    // ──────────────────────────────────────────────────────────────────
+    // Initialization & Callback Handling
+    // ──────────────────────────────────────────────────────────────────
+    function handleCallback() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+
+      if (code) {
+        // Strip code from URL immediately
+        window.history.replaceState({}, document.title, window.location.pathname);
+
+        (async () => {
+          try {
+            const config = getConfig();
+            const verifier = getVerifier();
+
+            if (!config || !verifier) {
+              showError('Session lost. Please login again.');
+              sessionStorage.clear();
+              return;
+            }
+
+            // Exchange code for token
+            const tokenResponse = await fetch(`https://${config.loginHost}/oauth/token`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams({
+                client_id: config.clientId,
+                code,
+                grant_type: 'authorization_code',
+                redirect_uri: window.location.origin + window.location.pathname,
+                code_verifier: verifier,
+              }).toString(),
+            });
+
+            if (!tokenResponse.ok) {
+              const errData = await tokenResponse.json();
+              throw new Error(errData.error_description || 'Token exchange failed');
+            }
+
+            const tokenData = await tokenResponse.json();
+            setToken(tokenData.access_token);
+            showApiSection(config);
+            hideError();
+          } catch (err) {
+            showError('Token exchange failed: ' + err.message);
+            sessionStorage.clear();
+          }
+        })();
+      }
+    }
+
+    function init() {
+      updateRedirectUri();
+
+      const token = getToken();
+      if (token) {
+        showApiSection(getConfig());
+      } else {
+        showLoginSection();
+        handleCallback();
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
