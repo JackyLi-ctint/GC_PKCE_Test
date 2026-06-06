@@ -52,7 +52,7 @@
       </div>
     </div>
 
-    <div class="section" style="background:#fff8e1;border-left:4px solid #f59e0b;padding:12px 16px">
+    <div id="cookieBanner" class="section" style="background:#fff8e1;border-left:4px solid #f59e0b;padding:12px 16px">
       <strong>&#x26A0;&#xFE0F; Browser prerequisite — Third-party cookies must be allowed for <code>apps.mypurecloud.com.au</code></strong>
       <p style="margin:6px 0 0;font-size:13px">
         The Embedded Framework uses a cookie written by the login popup to pass the auth token back to the iframe.
@@ -60,7 +60,10 @@
       </p>
       <p style="margin:6px 0 0;font-size:13px"><strong>Fix (Edge / Chrome):</strong>
         Settings → Privacy, search, and services → Cookies and other site data →
-        <em>Sites that can always use cookies</em> → Add <code>[*.]mypurecloud.com.au</code>.
+        <em>Sites that can always use cookies</em> → Add <code>[*.]mypurecloud.com.au</code>.<br>
+        <strong>Quick links:</strong>
+        <a href="edge://settings/content/cookies" style="margin-right:8px">Open Edge Cookie Settings</a>
+        <a href="chrome://settings/cookies">Open Chrome Cookie Settings</a>
       </p>
       <p style="margin:6px 0 0;font-size:13px"><strong>Symptom if missing:</strong>
         Login popup opens and closes, but the iframe stays on "Waiting for credentials..."
@@ -133,6 +136,28 @@
       setTimeout(() => { copyUrlBtn.textContent = 'Copy'; }, 2000);
     });
 
+    // ── Cookie / stuck-iframe detection ────────────────────────────────────────
+    const cookieBanner = document.getElementById('cookieBanner');
+    let stuckTimer = null;
+
+    function dismissCookieBanner() {
+      cookieBanner.style.display = 'none';
+      try { localStorage.setItem('gc_cookie_ok', '1'); } catch(e) {}
+    }
+    // Hide banner if user already confirmed it
+    if (localStorage.getItem('gc_cookie_ok') === '1') cookieBanner.style.display = 'none';
+
+    // Auto-detect stuck state: if iframe loads but no postMessage within 12s, highlight banner
+    function startStuckTimer() {
+      clearTimeout(stuckTimer);
+      stuckTimer = setTimeout(() => {
+        cookieBanner.style.display = '';
+        cookieBanner.style.outline = '2px solid #f59e0b';
+        cookieBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        dbg('⚠️ No auth received after 12s — possible third-party cookie block. See warning above.');
+      }, 12000);
+    }
+
     launchBtn.addEventListener('click', () => {
       const url = getIframeUrl();
       if (!url) { alert('Please select a region first.'); return; }
@@ -168,9 +193,23 @@
       dbg('postMessage from ' + e.origin, e.data);
     });
 
-    // Log iframe lifecycle
-    gcIframe.addEventListener('load',  () => dbg('iframe load event (src=' + gcIframe.src + ')'));
+    // Log iframe lifecycle + start stuck timer on load
+    gcIframe.addEventListener('load', () => {
+      dbg('iframe load event (src=' + gcIframe.src + ')');
+      if (gcIframe.src) startStuckTimer();
+    });
     gcIframe.addEventListener('error', () => dbg('iframe ERROR'));
+
+    // Cancel stuck timer if any postMessage arrives (auth succeeded)
+    window.addEventListener('message', () => clearTimeout(stuckTimer));
+
+    // Add dismiss button to cookie banner
+    const dismissBtn = document.createElement('button');
+    dismissBtn.textContent = '✓ I\'ve configured cookies — dismiss';
+    dismissBtn.className = 'btn-secondary';
+    dismissBtn.style.cssText = 'margin-top:10px;font-size:12px;padding:4px 10px';
+    dismissBtn.addEventListener('click', dismissCookieBanner);
+    cookieBanner.appendChild(dismissBtn);
   </script>
 </body>
 </html>
