@@ -52,6 +52,28 @@
       </div>
     </div>
 
+    <div class="section" style="background:#fff8e1;border-left:4px solid #f59e0b;padding:12px 16px">
+      <strong>&#x26A0;&#xFE0F; Browser prerequisite — Third-party cookies must be allowed for <code>apps.mypurecloud.com.au</code></strong>
+      <p style="margin:6px 0 0;font-size:13px">
+        The Embedded Framework uses a cookie written by the login popup to pass the auth token back to the iframe.
+        Because the iframe is embedded inside a different domain (GitHub Pages), browsers treat this as a <em>third-party cookie</em> and block it by default.
+      </p>
+      <p style="margin:6px 0 0;font-size:13px"><strong>Fix (Edge / Chrome):</strong>
+        Settings → Privacy, search, and services → Cookies and other site data →
+        <em>Sites that can always use cookies</em> → Add <code>[*.]mypurecloud.com.au</code>.
+      </p>
+      <p style="margin:6px 0 0;font-size:13px"><strong>Symptom if missing:</strong>
+        Login popup opens and closes, but the iframe stays on "Waiting for credentials..."
+        (<code>document.cookie</code> is blank in the iframe context).
+      </p>
+      <p style="margin:6px 0 0;font-size:13px"><strong>Permanent workaround:</strong>
+        Host your CRM page on the same domain as the iframe (e.g. a subdomain of <code>mypurecloud.com.au</code>)
+        so the cookie is first-party. GitHub Pages cannot do this.
+        Alternatively, contact Genesys Support to request CHIPS (<code>Partitioned</code> cookie) support
+        for the <code>authWindow.html</code> flow.
+      </p>
+    </div>
+
     <div id="frameworkContainer" class="hidden section" style="padding-bottom:0">
       <iframe id="gcIframe"
         allow="camera *; microphone *; autoplay *; hid *; local-network-access *"

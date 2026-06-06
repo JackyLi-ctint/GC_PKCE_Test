@@ -46,6 +46,14 @@
 
   <div class="url-box" id="urlBox">—</div>
 
+  <div style="background:#fff8e1;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:4px;margin-bottom:12px;font-size:13px">
+    <strong>&#x26A0;&#xFE0F; Third-party cookies required for <code>apps.mypurecloud.com.au</code></strong><br>
+    The login popup saves the auth token as a cookie. When the iframe is embedded in a different origin (e.g. GitHub Pages),
+    browsers block this as a third-party cookie and the iframe stays stuck on "Waiting for credentials...".<br><br>
+    <strong>Fix (Edge / Chrome):</strong> Settings → Privacy → Cookies → <em>Sites that can always use cookies</em> → add <code>[*.]mypurecloud.com.au</code>.<br>
+    <strong>Symptom:</strong> Popup closes automatically, iframe never loads. In iframe DevTools context: <code>document.cookie === ""</code>.
+  </div>
+
   <iframe id="gcIframe"
     allow="camera *; microphone *; autoplay *; hid *; local-network-access *"
   ></iframe>
