@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Framework Min Test</title>
+  <style>
+    body { font-family: sans-serif; margin: 24px; background: #f5f5f5; }
+    h2 { margin-bottom: 4px; }
+    .note { font-size: 13px; color: #555; margin-bottom: 16px; }
+    .note a { color: #0070cc; }
+    iframe { width: 100%; height: 700px; border: 1px solid #ccc; border-radius: 4px; display: block; background: #fff; }
+    .log { font-family: monospace; font-size: 12px; background: #1e1e1e; color: #d4d4d4; padding: 10px;
+           border-radius: 4px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; margin-top: 12px; }
+    button { padding: 8px 18px; background: #0070cc; color: #fff; border: none; border-radius: 4px;
+             cursor: pointer; font-size: 14px; margin-right: 8px; }
+    button:hover { background: #005fa3; }
+    .row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    label { font-size: 13px; }
+    select { padding: 6px 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px; }
+    .url-box { font-family: monospace; font-size: 12px; background: #fff; border: 1px solid #ccc;
+               border-radius: 4px; padding: 8px; margin-bottom: 12px; word-break: break-all; color: #333; }
+  </style>
+</head>
+<body>
+  <h2>Embedded Framework — Minimum Test</h2>
+  <p class="note">
+    Minimal page per
+    <a href="https://developer.genesys.cloud/platform/embeddable-framework/embeddable-framework-support" target="_blank">
+      GC support guidance
+    </a>.
+    Upload <code>framework-min.js</code> to GC Admin first, then click Launch.
+    <br>If this works → issue is in the main <code>framework.js</code>.
+    If this also hangs → issue is GC infrastructure / org settings (contact Genesys Support).
+  </p>
+
+  <div class="row">
+    <label for="modeSelect">Mode:</label>
+    <select id="modeSelect">
+      <option value="prod">Production (embeddableFramework.html)</option>
+      <option value="dev">Dev (index.html?crm=framework-local-secure)</option>
+    </select>
+    <button id="launchBtn">▶ Launch</button>
+    <button id="reloadBtn" style="background:#6c757d">↺ Reload</button>
+  </div>
+
+  <div class="url-box" id="urlBox">—</div>
+
+  <iframe id="gcIframe"
+    allow="camera *; microphone *; autoplay *; hid *; local-network-access *"
+  ></iframe>
+
+  <div class="log" id="log">[ waiting for events... ]</div>
+
+  <script>
+    const REGION = 'apps.mypurecloud.com.au';
+    const iframe  = document.getElementById('gcIframe');
+    const logEl   = document.getElementById('log');
+    const urlBox  = document.getElementById('urlBox');
+    const modeSelect = document.getElementById('modeSelect');
+
+    function getUrl() {
+      return modeSelect.value === 'prod'
+        ? `https://${REGION}/crm/embeddableFramework.html?dedicatedLoginWindow=true`
+        : `https://${REGION}/crm/index.html?crm=framework-local-secure&dedicatedLoginWindow=true`;
+    }
+
+    function dbg(msg) {
+      const ts = new Date().toLocaleTimeString([], { hour12: false, fractionalSecondDigits: 3 });
+      logEl.textContent += `\n[${ts}] ${msg}`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function refreshUrl() { urlBox.textContent = getUrl(); }
+
+    modeSelect.addEventListener('change', refreshUrl);
+    refreshUrl();
+
+    document.getElementById('launchBtn').addEventListener('click', () => {
+      const url = getUrl();
+      dbg('Launching iframe: ' + url);
+      iframe.src = url;
+    });
+
+    document.getElementById('reloadBtn').addEventListener('click', () => {
+      dbg('Reloading iframe');
+      iframe.src = getUrl();
+    });
+
+    iframe.addEventListener('load',  () => dbg('iframe LOAD (src=' + iframe.src + ')'));
+    iframe.addEventListener('error', () => dbg('iframe ERROR'));
+
+    window.addEventListener('message', (e) => {
+      dbg('postMessage from ' + e.origin + ': ' + JSON.stringify(e.data));
+    });
+
+    dbg('Page ready');
+  </script>
+</body>
+</html>
