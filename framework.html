@@ -38,13 +38,6 @@
       </div>
 
       <div class="form-group">
-        <label class="checkbox-row">
-          <input type="checkbox" id="enableClientId">
-          Enable Client ID auth (<code>getAuthToken</code>) &mdash; adds <code>?enableFrameworkClientId=true</code>
-        </label>
-      </div>
-
-      <div class="form-group">
         <label>iframe URL <button class="copy-btn" id="copyUrl">Copy</button></label>
         <div class="redirect-uri-box" id="iframeUrlDisplay">Select a region to see the URL</div>
         <p style="font-size:12px;margin-top:6px;color:#666">
@@ -80,7 +73,6 @@
 
     const regionSelect     = document.getElementById('regionSelect');
     const frameworkMode    = document.getElementById('frameworkMode');
-    const enableClientId   = document.getElementById('enableClientId');
     const iframeUrlDisplay = document.getElementById('iframeUrlDisplay');
     const copyUrlBtn       = document.getElementById('copyUrl');
     const launchBtn        = document.getElementById('launchBtn');
@@ -95,16 +87,12 @@
       if (!opt || !opt.dataset.apps) return null;
       const host   = opt.dataset.apps;
       const isProd = frameworkMode.value === 'prod';
-      const withId = enableClientId.checked;
       // dedicatedLoginWindow=true is required when the org enforces PKCE globally
+      // Note: enableFrameworkClientId is only needed if using getAuthToken API calls
       if (isProd) {
-        const params = new URLSearchParams({ dedicatedLoginWindow: 'true' });
-        if (withId) params.set('enableFrameworkClientId', 'true');
-        return `https://${host}/crm/embeddableFramework.html?${params}`;
+        return `https://${host}/crm/embeddableFramework.html?dedicatedLoginWindow=true`;
       } else {
-        const params = new URLSearchParams({ crm: 'framework-local-secure', dedicatedLoginWindow: 'true' });
-        if (withId) params.set('enableFrameworkClientId', 'true');
-        return `https://${host}/crm/index.html?${params}`;
+        return `https://${host}/crm/index.html?crm=framework-local-secure&dedicatedLoginWindow=true`;
       }
     }
 
@@ -114,7 +102,6 @@
 
     regionSelect.addEventListener('change', refreshUrl);
     frameworkMode.addEventListener('change', refreshUrl);
-    enableClientId.addEventListener('change', refreshUrl);
 
     copyUrlBtn.addEventListener('click', async () => {
       const url = getIframeUrl();
