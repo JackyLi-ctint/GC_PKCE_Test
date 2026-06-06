@@ -65,6 +65,14 @@
         style="width:100%;height:700px;border:1px solid #dee2e6;border-radius:4px;display:block"
       ></iframe>
     </div>
+
+    <div id="debugSection" class="hidden section">
+      <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>&#x1F50D; Debug Log</span>
+        <button class="btn-secondary" id="clearLogBtn" style="padding:4px 10px;font-size:12px">Clear</button>
+      </div>
+      <div id="debugLog" style="font-family:monospace;font-size:12px;max-height:260px;overflow-y:auto;background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;padding:8px;white-space:pre-wrap;"></div>
+    </div>
   </div>
 
   <script type="module">
@@ -129,6 +137,31 @@
       const url = getIframeUrl();
       if (url) gcIframe.src = url;
     });
+
+    // ── Debug log ──────────────────────────────────────────────────────────────
+    const debugSection = document.getElementById('debugSection');
+    const debugLog     = document.getElementById('debugLog');
+    const clearLogBtn  = document.getElementById('clearLogBtn');
+
+    function dbg(label, data) {
+      debugSection.classList.remove('hidden');
+      const ts   = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
+      const body = data !== undefined ? ' ' + (typeof data === 'string' ? data : JSON.stringify(data, null, 2)) : '';
+      debugLog.textContent += `[${ts}] ${label}${body}\n`;
+      debugLog.scrollTop = debugLog.scrollHeight;
+    }
+
+    clearLogBtn.addEventListener('click', () => { debugLog.textContent = ''; });
+
+    // Log all postMessages from the GC iframe / popup
+    window.addEventListener('message', (e) => {
+      // Filter to messages from GC (apps.* origins) or same origin
+      dbg('postMessage from ' + e.origin, e.data);
+    });
+
+    // Log iframe lifecycle
+    gcIframe.addEventListener('load',  () => dbg('iframe load event (src=' + gcIframe.src + ')'));
+    gcIframe.addEventListener('error', () => dbg('iframe ERROR'));
   </script>
 </body>
 </html>
