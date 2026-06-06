@@ -44,6 +44,9 @@ window.Framework = {
 
     // UI settings — set to true/false to enable/disable features.
     settings: {
+      // Required when the org enforces PKCE org-wide — opens login in a
+      // dedicated popup window instead of trying to authenticate inline.
+      dedicatedLoginWindow: true,
       // clickToDial: true,
       // sendData: true,
     },

@@ -85,13 +85,18 @@
     function getIframeUrl() {
       const opt = regionSelect.options[regionSelect.selectedIndex];
       if (!opt || !opt.dataset.apps) return null;
-      const host      = opt.dataset.apps;
-      const isProd    = frameworkMode.value === 'prod';
-      const withId    = enableClientId.checked;
+      const host   = opt.dataset.apps;
+      const isProd = frameworkMode.value === 'prod';
+      const withId = enableClientId.checked;
+      // dedicatedLoginWindow=true is required when the org enforces PKCE globally
       if (isProd) {
-        return `https://${host}/crm/embeddableFramework.html${withId ? '?enableFrameworkClientId=true' : ''}`;
+        const params = new URLSearchParams({ dedicatedLoginWindow: 'true' });
+        if (withId) params.set('enableFrameworkClientId', 'true');
+        return `https://${host}/crm/embeddableFramework.html?${params}`;
       } else {
-        return `https://${host}/crm/index.html?crm=framework-local-secure${withId ? '&enableFrameworkClientId=true' : ''}`;
+        const params = new URLSearchParams({ crm: 'framework-local-secure', dedicatedLoginWindow: 'true' });
+        if (withId) params.set('enableFrameworkClientId', 'true');
+        return `https://${host}/crm/index.html?${params}`;
       }
     }
 
