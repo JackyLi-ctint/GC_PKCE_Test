@@ -1,0 +1,293 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PKCE API Tester – GC Tools</title>
+  <link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+  <nav class="nav">
+    <a href="index.html">Home</a>
+    <a href="pkce.html" class="active">&#x1F510; PKCE API Tester</a>
+    <a href="framework.html">&#x1F4BB; Embedded Framework</a>
+  </nav>
+
+  <div class="container">
+    <h1>&#x1F510; PKCE API Tester</h1>
+
+    <!-- Login Section -->
+    <div id="loginSection" class="section">
+      <div class="section-title">1. OAuth Configuration</div>
+
+      <div class="form-group">
+        <label for="regionSelect">GC Region</label>
+        <select id="regionSelect"></select>
+      </div>
+
+      <div class="form-group">
+        <label for="clientId">OAuth Client ID</label>
+        <input type="text" id="clientId" placeholder="Paste your OAuth Client ID here">
+      </div>
+
+      <div class="form-group">
+        <label>Computed Redirect URI</label>
+        <div class="redirect-uri-box" id="redirectUri">(Select a region first)</div>
+        <button class="copy-btn" id="copyRedirectUri">Copy Redirect URI</button>
+        <p style="font-size:12px;margin-top:8px;color:#666">
+          &#x26A0;&#xFE0F; Register this URI in your GC OAuth client before clicking Login.
+        </p>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-primary" id="loginBtn">&#x1F517; Login with Genesys Cloud</button>
+      </div>
+      <div id="loginError"></div>
+    </div>
+
+    <!-- API Request Section -->
+    <div id="apiSection" class="section hidden">
+      <div class="section-title">2. API Request</div>
+
+      <div class="form-group">
+        <label for="apiMethod">HTTP Method</label>
+        <select id="apiMethod">
+          <option>GET</option><option>POST</option><option>PUT</option>
+          <option>PATCH</option><option>DELETE</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="apiPath">API Path (e.g. /api/v2/users/me)</label>
+        <input type="text" id="apiPath" placeholder="/api/v2/users/me">
+      </div>
+
+      <div class="form-group hidden" id="bodyGroup">
+        <label for="requestBody">Request Body (JSON)</label>
+        <textarea id="requestBody" placeholder='{"key": "value"}'></textarea>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-primary" id="runApiBtn">&#x25B6;&#xFE0F; Run API Call</button>
+        <button class="btn-danger" id="logoutBtn">&#x1F6AA; Logout</button>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="section hidden">
+      <div class="section-title">3. Results</div>
+      <div id="errorMessage" class="error hidden"></div>
+      <div id="statusLine" class="status-line hidden"></div>
+      <div id="responsePanel" class="response-panel hidden">
+        <div style="margin-bottom:12px">
+          <div class="section-title" style="margin-bottom:8px">HTTP Response</div>
+          <pre id="responseBody">Loading...</pre>
+        </div>
+        <div class="collapsible-header" id="tokenHeader">Access Token (raw)</div>
+        <div class="collapsible-content" id="tokenContent">
+          <pre id="tokenValue" style="word-break:break-all"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { buildRegionSelect } from './src/regions.js';
+    import {
+      generateCodeVerifier, generateCodeChallenge,
+      httpBadgeClass, validateApiPath, validateJsonBody, escapeHtml,
+    } from './src/pkce-utils.js';
+
+    // DOM
+    const regionSelect    = document.getElementById('regionSelect');
+    const clientIdInput   = document.getElementById('clientId');
+    const redirectUriBox  = document.getElementById('redirectUri');
+    const copyBtn         = document.getElementById('copyRedirectUri');
+    const loginBtn        = document.getElementById('loginBtn');
+    const loginError      = document.getElementById('loginError');
+    const apiMethodSelect = document.getElementById('apiMethod');
+    const apiPathInput    = document.getElementById('apiPath');
+    const requestBodyInput= document.getElementById('requestBody');
+    const bodyGroup       = document.getElementById('bodyGroup');
+    const runApiBtn       = document.getElementById('runApiBtn');
+    const logoutBtn       = document.getElementById('logoutBtn');
+    const loginSection    = document.getElementById('loginSection');
+    const apiSection      = document.getElementById('apiSection');
+    const resultsSection  = document.getElementById('resultsSection');
+    const statusLine      = document.getElementById('statusLine');
+    const responsePanel   = document.getElementById('responsePanel');
+    const responsePre     = document.getElementById('responseBody');
+    const errorMessage    = document.getElementById('errorMessage');
+    const tokenHeader     = document.getElementById('tokenHeader');
+    const tokenContent    = document.getElementById('tokenContent');
+    const tokenValue      = document.getElementById('tokenValue');
+
+    buildRegionSelect(regionSelect);
+
+    // Session helpers
+    const saveConfig = () => {
+      const opt = regionSelect.options[regionSelect.selectedIndex];
+      sessionStorage.setItem('gc_pkce_config', JSON.stringify({
+        region: regionSelect.value,
+        loginHost: opt.dataset.login,
+        apiHost: opt.dataset.api,
+        clientId: clientIdInput.value,
+      }));
+    };
+    const getConfig  = () => JSON.parse(sessionStorage.getItem('gc_pkce_config') || 'null');
+    const getToken   = () => sessionStorage.getItem('gc_pkce_token');
+    const setToken   = t  => sessionStorage.setItem('gc_pkce_token', t);
+    const getVerifier= () => sessionStorage.getItem('gc_pkce_verifier');
+    const setVerifier= v  => sessionStorage.setItem('gc_pkce_verifier', v);
+
+    // UI helpers
+    const showError  = msg => { errorMessage.textContent = msg; errorMessage.classList.remove('hidden'); };
+    const hideError  = ()  => { errorMessage.classList.add('hidden'); errorMessage.textContent = ''; };
+    const showLoginSection = () => {
+      loginSection.classList.remove('hidden');
+      apiSection.classList.add('hidden');
+      resultsSection.classList.add('hidden');
+    };
+    const showApiSection = () => {
+      loginSection.classList.add('hidden');
+      apiSection.classList.remove('hidden');
+      updateBodyVisibility();
+    };
+    const updateBodyVisibility = () => {
+      const m = apiMethodSelect.value;
+      bodyGroup.classList.toggle('hidden', !['POST','PUT','PATCH'].includes(m));
+    };
+    const updateRedirectUri = () => {
+      redirectUriBox.textContent = window.location.origin + window.location.pathname;
+    };
+
+    // Events
+    regionSelect.addEventListener('change', updateRedirectUri);
+    apiMethodSelect.addEventListener('change', updateBodyVisibility);
+    tokenHeader.addEventListener('click', () => {
+      tokenHeader.classList.toggle('open');
+      tokenContent.classList.toggle('open');
+    });
+    copyBtn.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(redirectUriBox.textContent);
+      copyBtn.textContent = '✓ Copied!';
+      setTimeout(() => { copyBtn.textContent = 'Copy Redirect URI'; }, 2000);
+    });
+
+    loginBtn.addEventListener('click', async () => {
+      loginError.innerHTML = '';
+      const region   = regionSelect.value;
+      const clientId = clientIdInput.value.trim();
+      if (!region)    { loginError.innerHTML = '<div class="error">Please select a region.</div>'; return; }
+      if (!clientId)  { loginError.innerHTML = '<div class="error">Please enter your OAuth Client ID.</div>'; return; }
+      saveConfig();
+      const verifier  = generateCodeVerifier();
+      setVerifier(verifier);
+      const challenge = await generateCodeChallenge(verifier);
+      const opt       = regionSelect.options[regionSelect.selectedIndex];
+      const params    = new URLSearchParams({
+        client_id: clientId, response_type: 'code',
+        redirect_uri: window.location.origin + window.location.pathname,
+        code_challenge: challenge, code_challenge_method: 'S256',
+      });
+      window.location.href = `https://${opt.dataset.login}/oauth/authorize?${params}`;
+    });
+
+    runApiBtn.addEventListener('click', async () => {
+      const config   = getConfig();
+      const token    = getToken();
+      const method   = apiMethodSelect.value;
+      const path     = apiPathInput.value.trim();
+      const bodyText = requestBodyInput.value.trim();
+      try {
+        validateApiPath(path);
+        if (bodyText) validateJsonBody(bodyText);
+        hideError();
+        const opts = {
+          method,
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        };
+        if (bodyText) opts.body = bodyText;
+        const res  = await fetch(`https://${config.apiHost}${path}`, opts);
+        let data;
+        try { data = await res.json(); } catch { data = { _raw_text: await res.text() }; }
+
+        resultsSection.classList.remove('hidden');
+        statusLine.innerHTML = '';
+        const mkBadge = (cls, txt) => { const s = document.createElement('span'); s.className = `badge ${cls}`; s.textContent = txt; return s; };
+        statusLine.appendChild(mkBadge('badge-success', '✓ Token active'));
+        statusLine.appendChild(mkBadge('badge-info', config.region));
+        statusLine.appendChild(mkBadge(`http-${httpBadgeClass(res.status).split('-')[1]}`, `${method} ${res.status}`));
+        statusLine.classList.remove('hidden');
+        responsePre.textContent = JSON.stringify(data, null, 2);
+        responsePanel.classList.remove('hidden');
+        tokenValue.textContent = token;
+      } catch (e) { showError(e.message); }
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+      const config = getConfig();
+      const token  = getToken();
+      if (token && config) {
+        await fetch(`https://${config.apiHost}/api/v2/tokens/me`, {
+          method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` },
+        }).catch(() => {});
+      }
+      sessionStorage.clear();
+      showLoginSection();
+      updateRedirectUri();
+      hideError();
+    });
+
+    // Callback handling
+    async function handleCallback() {
+      const params = new URLSearchParams(window.location.search);
+      const code   = params.get('code');
+      const err    = params.get('error');
+      if (!code && !err) return false;
+      window.history.replaceState({}, '', window.location.pathname);
+      if (err) {
+        loginError.innerHTML = `<div class="error">Auth error: ${escapeHtml(err)} – ${escapeHtml(params.get('error_description') || '')}</div>`;
+        return true;
+      }
+      const config   = getConfig();
+      const verifier = getVerifier();
+      if (!config || !verifier) {
+        loginError.innerHTML = '<div class="error">Session lost. Please login again.</div>';
+        sessionStorage.clear();
+        return true;
+      }
+      try {
+        const res = await fetch(`https://${config.loginHost}/oauth/token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: config.clientId, code,
+            grant_type: 'authorization_code',
+            redirect_uri: window.location.origin + window.location.pathname,
+            code_verifier: verifier,
+          }).toString(),
+        });
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          throw new Error(e.error_description || 'Token exchange failed');
+        }
+        const data = await res.json();
+        setToken(data.access_token);
+        showApiSection();
+      } catch (e) {
+        loginError.innerHTML = `<div class="error">Token exchange failed: ${escapeHtml(e.message)}</div>`;
+        sessionStorage.clear();
+      }
+      return true;
+    }
+
+    // Init
+    updateRedirectUri();
+    const isCallback = await handleCallback();
+    if (!isCallback) {
+      if (getToken()) { showApiSection(); } else { showLoginSection(); }
+    }
+  </script>
+</body>
+</html>

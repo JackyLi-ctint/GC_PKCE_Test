@@ -1,0 +1,129 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Embedded Framework – GC Tools</title>
+  <link rel="stylesheet" href="src/styles.css">
+  <style>
+    .checkbox-row { display:flex; align-items:center; gap:8px; font-size:14px; cursor:pointer; }
+    .checkbox-row input { width:auto; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="index.html">Home</a>
+    <a href="pkce.html">&#x1F510; PKCE API Tester</a>
+    <a href="framework.html" class="active">&#x1F4BB; Embedded Framework</a>
+  </nav>
+
+  <div class="container">
+    <h1>&#x1F4BB; Embedded Framework (Agent UI)</h1>
+
+    <div class="section">
+      <div class="section-title">Configuration</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="regionSelect">GC Region</label>
+          <select id="regionSelect"></select>
+        </div>
+        <div class="form-group">
+          <label for="frameworkMode">Mode</label>
+          <select id="frameworkMode">
+            <option value="prod">Production &mdash; framework.js uploaded to GC admin</option>
+            <option value="dev">Development &mdash; local framework.js (npx serve .)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox-row">
+          <input type="checkbox" id="enableClientId">
+          Enable Client ID auth (<code>getAuthToken</code>) &mdash; adds <code>?enableFrameworkClientId=true</code>
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label>iframe URL <button class="copy-btn" id="copyUrl">Copy</button></label>
+        <div class="redirect-uri-box" id="iframeUrlDisplay">Select a region to see the URL</div>
+        <p style="font-size:12px;margin-top:6px;color:#666">
+          &#x26A0;&#xFE0F; In Development mode the page must be served over <strong>HTTPS</strong>
+          or <code>localhost</code> via <code>npx serve .</code>
+        </p>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-primary" id="launchBtn">&#x25B6; Launch Embedded Agent</button>
+        <button class="btn-secondary hidden" id="reloadBtn">&#x21BA; Reload</button>
+      </div>
+    </div>
+
+    <div id="frameworkContainer" class="hidden section" style="padding-bottom:0">
+      <iframe id="gcIframe"
+        allow="camera *; microphone *; autoplay *; hid *; local-network-access *"
+        style="width:100%;height:700px;border:1px solid #dee2e6;border-radius:4px;display:block"
+      ></iframe>
+    </div>
+  </div>
+
+  <script type="module">
+    import { buildRegionSelect } from './src/regions.js';
+
+    const regionSelect     = document.getElementById('regionSelect');
+    const frameworkMode    = document.getElementById('frameworkMode');
+    const enableClientId   = document.getElementById('enableClientId');
+    const iframeUrlDisplay = document.getElementById('iframeUrlDisplay');
+    const copyUrlBtn       = document.getElementById('copyUrl');
+    const launchBtn        = document.getElementById('launchBtn');
+    const reloadBtn        = document.getElementById('reloadBtn');
+    const frameworkContainer = document.getElementById('frameworkContainer');
+    const gcIframe         = document.getElementById('gcIframe');
+
+    buildRegionSelect(regionSelect);
+
+    function getIframeUrl() {
+      const opt = regionSelect.options[regionSelect.selectedIndex];
+      if (!opt || !opt.dataset.apps) return null;
+      const host      = opt.dataset.apps;
+      const isProd    = frameworkMode.value === 'prod';
+      const withId    = enableClientId.checked;
+      if (isProd) {
+        return `https://${host}/crm/embeddableFramework.html${withId ? '?enableFrameworkClientId=true' : ''}`;
+      } else {
+        return `https://${host}/crm/index.html?crm=framework-local-secure${withId ? '&enableFrameworkClientId=true' : ''}`;
+      }
+    }
+
+    function refreshUrl() {
+      iframeUrlDisplay.textContent = getIframeUrl() || 'Select a region to see the URL';
+    }
+
+    regionSelect.addEventListener('change', refreshUrl);
+    frameworkMode.addEventListener('change', refreshUrl);
+    enableClientId.addEventListener('change', refreshUrl);
+
+    copyUrlBtn.addEventListener('click', async () => {
+      const url = getIframeUrl();
+      if (!url) return;
+      await navigator.clipboard.writeText(url);
+      copyUrlBtn.textContent = '✓ Copied!';
+      setTimeout(() => { copyUrlBtn.textContent = 'Copy'; }, 2000);
+    });
+
+    launchBtn.addEventListener('click', () => {
+      const url = getIframeUrl();
+      if (!url) { alert('Please select a region first.'); return; }
+      gcIframe.src = url;
+      frameworkContainer.classList.remove('hidden');
+      reloadBtn.classList.remove('hidden');
+      launchBtn.textContent = '↺ Relaunch';
+    });
+
+    reloadBtn.addEventListener('click', () => {
+      const url = getIframeUrl();
+      if (url) gcIframe.src = url;
+    });
+  </script>
+</body>
+</html>
