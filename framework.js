@@ -36,7 +36,7 @@ window.Framework = {
       'mypurecloud.jp':         '', // Asia Pacific – Tokyo      (ap-northeast-1)
       'apne2.pure.cloud':       '', // Asia Pacific – Seoul      (ap-northeast-2)
       'apne3.pure.cloud':       '', // Asia Pacific – Osaka      (ap-northeast-3)
-      'mypurecloud.com.au':     '', // Asia Pacific – Sydney     (ap-southeast-2)
+      'mypurecloud.com.au':     'dd2e2bfd-0a83-490b-b333-74c118ecead3', // Asia Pacific – Sydney     (ap-southeast-2)
       'apse1.pure.cloud':       '', // Asia Pacific – Singapore  (ap-southeast-1)
       'sae1.pure.cloud':        '', // South America – São Paulo (sa-east-1)
       'mec1.pure.cloud':        '', // Middle East – UAE         (me-central-1)
